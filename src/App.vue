@@ -1,108 +1,134 @@
 <template>
-  <div class="app-container">
-    <div class="editor-container">
-      <div class="editor-header">
-        <h1>微信公众号文章编辑器</h1>
-        <div class="word-count">
-          <span :class="{ 'warning': wordCount < 500 }">
-            字数：{{ wordCount }} / 500
-          </span>
+  <div class="app-wrapper">
+    <!-- 顶部标题栏 -->
+    <header class="app-header">
+      <h1 class="app-title">微信公众号文章编辑器</h1>
+      <div class="header-actions">
+        <div class="word-count-info" :class="{ 'warning': wordCount < 500 }">
+          <span class="count-text">字数：{{ wordCount }} / 500</span>
           <button 
             v-if="wordCount < 500" 
             @click="fillRandomText" 
-            class="fill-btn"
+            class="action-btn fill-btn"
           >
             自动填充至500字
           </button>
         </div>
       </div>
+    </header>
 
-      <div class="editor-wrapper">
-        <div class="editor-toolbar">
-          <button 
-            @click="toggleCollapse" 
-            class="collapse-btn"
-            :class="{ 'active': isCollapsed }"
-          >
-            {{ isCollapsed ? '展开' : '隐藏到最小' }}
-          </button>
-          <button @click="clearContent" class="clear-btn">清空</button>
-        </div>
-
-        <div 
-          class="editor-content" 
-          :class="{ 'collapsed': isCollapsed }"
-        >
-          <textarea
-            v-model="content"
-            @input="handleInput"
-            class="editor-textarea"
-            placeholder="请输入文章内容..."
-            :style="{ minHeight: isCollapsed ? '60px' : '400px' }"
-          ></textarea>
-        </div>
-
-        <div v-if="isCollapsed" class="collapsed-preview">
-          <div class="preview-text">{{ collapsedPreview }}</div>
-        </div>
-      </div>
-
-      <div class="editor-footer">
-        <div class="tips">
-          <p>💡 提示：当字数不足500字时，点击"自动填充至500字"按钮会自动填充随机文字</p>
-          <p>💡 点击"隐藏到最小"可以将编辑器折叠到最小显示</p>
-        </div>
-      </div>
-    </div>
-
-    <!-- 右侧预览区域 -->
-    <div class="preview-container">
-      <div class="preview-header">
-        <h2>文章预览</h2>
-        <button @click="copyToClipboard" class="copy-btn" :disabled="!content">
-          {{ copySuccess ? '已复制' : '复制内容' }}
-        </button>
-      </div>
-      <div class="wechat-preview">
-        <div class="wechat-article">
-          <div class="article-title">
-            <input 
-              v-model="articleTitle" 
-              class="title-input"
-              placeholder="请输入文章标题"
-            />
+    <!-- 主内容区 -->
+    <main class="app-main">
+      <!-- 左侧编辑区 -->
+      <section class="editor-section">
+        <div class="editor-panel">
+          <!-- 编辑器工具栏 -->
+          <div class="editor-toolbar">
+            <div class="toolbar-left">
+              <button 
+                @click="toggleCollapse" 
+                class="toolbar-btn"
+                :class="{ 'active': isCollapsed }"
+              >
+                {{ isCollapsed ? '展开' : '隐藏到最小' }}
+              </button>
+              <button @click="clearContent" class="toolbar-btn">清空</button>
+            </div>
           </div>
-          <div class="article-meta">
-            <span class="author-name">
-              <input 
-                v-model="authorName" 
-                class="meta-input"
-                placeholder="作者"
-              />
-            </span>
-            <span class="publish-time">{{ currentTime }}</span>
+
+          <!-- 编辑器内容区 -->
+          <div class="editor-body" :class="{ 'collapsed': isCollapsed }">
+            <textarea
+              v-model="content"
+              @input="handleInput"
+              class="editor-textarea"
+              placeholder="请输入文章内容..."
+              :style="{ minHeight: isCollapsed ? '60px' : '100%' }"
+            ></textarea>
           </div>
-          <div class="article-content">
-            <section 
-              v-if="content" 
-              class="content-text"
-              v-html="formattedContent"
-            ></section>
-            <section v-else class="empty-content">
-              <p>请在左侧编辑器中输入文章内容</p>
-            </section>
+
+          <!-- 折叠预览 -->
+          <div v-if="isCollapsed" class="collapsed-preview">
+            <div class="preview-text">{{ collapsedPreview }}</div>
           </div>
-          <div class="article-divider"></div>
-          <div class="article-footer">
-            <div class="read-stats">
-              <span>阅读 {{ readCount }}</span>
-              <span class="divider">|</span>
-              <span>点赞 {{ likeCount }}</span>
+
+          <!-- 底部提示 -->
+          <div class="editor-footer">
+            <div class="tips">
+              <p>💡 提示：当字数不足500字时，点击"自动填充至500字"按钮会自动填充随机文字</p>
+              <p>💡 点击"隐藏到最小"可以将编辑器折叠到最小显示</p>
             </div>
           </div>
         </div>
-      </div>
-    </div>
+      </section>
+
+      <!-- 右侧预览区 -->
+      <aside class="preview-section">
+        <div class="preview-panel">
+          <!-- 预览头部 -->
+          <div class="preview-header">
+            <h2 class="preview-title">文章预览</h2>
+            <button 
+              @click="copyToClipboard" 
+              class="action-btn copy-btn" 
+              :disabled="!content"
+            >
+              {{ copySuccess ? '已复制' : '复制内容' }}
+            </button>
+          </div>
+
+          <!-- 预览内容 -->
+          <div class="preview-body">
+            <div class="wechat-article">
+              <!-- 文章标题 -->
+              <div class="article-title">
+                <input 
+                  v-model="articleTitle" 
+                  class="title-input"
+                  placeholder="请输入文章标题"
+                />
+              </div>
+
+              <!-- 文章元信息 -->
+              <div class="article-meta">
+                <span class="author-name">
+                  <input 
+                    v-model="authorName" 
+                    class="meta-input"
+                    placeholder="作者"
+                  />
+                </span>
+                <span class="publish-time">{{ currentTime }}</span>
+              </div>
+
+              <!-- 文章正文 -->
+              <div class="article-content">
+                <section 
+                  v-if="content" 
+                  class="content-text"
+                  v-html="formattedContent"
+                ></section>
+                <section v-else class="empty-content">
+                  <p>请在左侧编辑器中输入文章内容</p>
+                </section>
+              </div>
+
+              <!-- 分割线 -->
+              <div class="article-divider"></div>
+
+              <!-- 文章底部 -->
+              <div class="article-footer">
+                <div class="read-stats">
+                  <span>阅读 {{ readCount }}</span>
+                  <span class="divider">|</span>
+                  <span>点赞 {{ likeCount }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </aside>
+    </main>
   </div>
 </template>
 
@@ -250,92 +276,126 @@ const copyToClipboard = async () => {
 </script>
 
 <style scoped>
-.app-container {
+/* 整体布局 */
+.app-wrapper {
   display: flex;
-  gap: 20px;
-  padding: 20px;
-  padding-right: 440px;
-  max-width: 1600px;
-  margin: 0 auto;
-  align-items: flex-start;
-}
-
-.editor-container {
-  flex: 1;
-  background: white;
-  border-radius: 8px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+  flex-direction: column;
+  height: 100vh;
   overflow: hidden;
-  min-width: 0;
+  background: #f5f5f5;
 }
 
-.editor-header {
-  padding: 20px 24px;
-  border-bottom: 1px solid #e8e8e8;
+/* 顶部标题栏 */
+.app-header {
+  flex-shrink: 0;
+  padding: 16px 24px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
-.editor-header h1 {
-  font-size: 24px;
+.app-title {
+  font-size: 20px;
   font-weight: 600;
+  margin: 0;
 }
 
-.word-count {
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.word-count-info {
   display: flex;
   align-items: center;
   gap: 12px;
 }
 
-.word-count span {
-  font-size: 16px;
+.count-text {
+  font-size: 14px;
   font-weight: 500;
-  padding: 8px 16px;
+  padding: 6px 14px;
   background: rgba(255, 255, 255, 0.2);
   border-radius: 20px;
 }
 
-.word-count span.warning {
+.word-count-info.warning .count-text {
   background: rgba(255, 193, 7, 0.3);
   color: #ffc107;
 }
 
-.fill-btn {
-  padding: 8px 20px;
-  background: #ffc107;
-  color: #333;
+.action-btn {
+  padding: 6px 16px;
   border: none;
-  border-radius: 20px;
+  border-radius: 4px;
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.3s;
+  white-space: nowrap;
+}
+
+.fill-btn {
+  background: #ffc107;
+  color: #333;
 }
 
 .fill-btn:hover {
   background: #ffb300;
   transform: translateY(-1px);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
 }
 
-.editor-wrapper {
-  position: relative;
+/* 主内容区 */
+.app-main {
+  flex: 1;
+  display: flex;
+  gap: 20px;
+  padding: 20px;
+  padding-right: 460px;
+  overflow: hidden;
 }
 
+/* 左侧编辑区 */
+.editor-section {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.editor-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+}
+
+/* 编辑器工具栏 */
 .editor-toolbar {
-  padding: 12px 24px;
+  flex-shrink: 0;
+  padding: 12px 20px;
   background: #f8f9fa;
   border-bottom: 1px solid #e8e8e8;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.toolbar-left {
   display: flex;
   gap: 12px;
 }
 
-.collapse-btn,
-.clear-btn {
-  padding: 8px 16px;
+.toolbar-btn {
+  padding: 6px 14px;
   border: 1px solid #ddd;
   border-radius: 4px;
   background: white;
@@ -345,30 +405,35 @@ const copyToClipboard = async () => {
   transition: all 0.3s;
 }
 
-.collapse-btn:hover,
-.clear-btn:hover {
+.toolbar-btn:hover {
   background: #f0f0f0;
   border-color: #999;
 }
 
-.collapse-btn.active {
+.toolbar-btn.active {
   background: #667eea;
   color: white;
   border-color: #667eea;
 }
 
-.editor-content {
-  padding: 24px;
+/* 编辑器内容区 */
+.editor-body {
+  flex: 1;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
   transition: all 0.3s ease;
 }
 
-.editor-content.collapsed {
-  padding: 12px 24px;
+.editor-body.collapsed {
+  padding: 12px 20px;
   max-height: 100px;
   overflow: hidden;
 }
 
 .editor-textarea {
+  flex: 1;
   width: 100%;
   border: 1px solid #e8e8e8;
   border-radius: 4px;
@@ -376,7 +441,7 @@ const copyToClipboard = async () => {
   font-size: 16px;
   line-height: 1.6;
   font-family: inherit;
-  resize: vertical;
+  resize: none;
   transition: all 0.3s ease;
   outline: none;
 }
@@ -386,8 +451,10 @@ const copyToClipboard = async () => {
   box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
 }
 
+/* 折叠预览 */
 .collapsed-preview {
-  padding: 12px 24px;
+  flex-shrink: 0;
+  padding: 12px 20px;
   background: #f8f9fa;
   border-top: 1px solid #e8e8e8;
 }
@@ -402,15 +469,17 @@ const copyToClipboard = async () => {
   border: 1px dashed #ddd;
 }
 
+/* 编辑器底部 */
 .editor-footer {
-  padding: 20px 24px;
+  flex-shrink: 0;
+  padding: 16px 20px;
   background: #f8f9fa;
   border-top: 1px solid #e8e8e8;
 }
 
 .tips {
   color: #666;
-  font-size: 14px;
+  font-size: 13px;
   line-height: 1.8;
 }
 
@@ -418,50 +487,50 @@ const copyToClipboard = async () => {
   margin: 4px 0;
 }
 
-/* 右侧预览区域 */
-.preview-container {
+/* 右侧预览区 */
+.preview-section {
   width: 400px;
-  height: 100vh;
-  max-height: 100vh;
   flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.preview-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
   background: white;
   border-radius: 8px;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
   overflow: hidden;
   position: fixed;
-  right: 20px;
-  top: 0;
-  display: flex;
-  flex-direction: column;
+  right: 40px;
+  top: 80px;
+  bottom: 20px;
+  width: 400px;
 }
 
 .preview-header {
+  flex-shrink: 0;
   padding: 16px 20px;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
   border-bottom: 1px solid #e8e8e8;
-  flex-shrink: 0;
   display: flex;
   justify-content: space-between;
   align-items: center;
 }
 
-.preview-header h2 {
-  font-size: 18px;
+.preview-title {
+  font-size: 16px;
   font-weight: 600;
   margin: 0;
 }
 
 .copy-btn {
-  padding: 6px 16px;
   background: rgba(255, 255, 255, 0.2);
   color: white;
   border: 1px solid rgba(255, 255, 255, 0.3);
-  border-radius: 4px;
-  font-size: 14px;
-  cursor: pointer;
-  transition: all 0.3s;
-  white-space: nowrap;
 }
 
 .copy-btn:hover:not(:disabled) {
@@ -478,14 +547,15 @@ const copyToClipboard = async () => {
   transform: scale(0.98);
 }
 
-.wechat-preview {
+.preview-body {
+  flex: 1;
   padding: 15px;
   background: #ededed;
-  flex: 1;
   overflow-y: auto;
   display: flex;
   justify-content: center;
   align-items: flex-start;
+  min-height: 0;
 }
 
 .wechat-article {
@@ -625,42 +695,46 @@ const copyToClipboard = async () => {
 }
 
 /* 滚动条样式 */
-.wechat-preview::-webkit-scrollbar,
+.preview-body::-webkit-scrollbar,
 .article-content::-webkit-scrollbar {
   width: 6px;
 }
 
-.wechat-preview::-webkit-scrollbar-track,
+.preview-body::-webkit-scrollbar-track,
 .article-content::-webkit-scrollbar-track {
   background: #f1f1f1;
   border-radius: 3px;
 }
 
-.wechat-preview::-webkit-scrollbar-thumb,
+.preview-body::-webkit-scrollbar-thumb,
 .article-content::-webkit-scrollbar-thumb {
   background: #c1c1c1;
   border-radius: 3px;
 }
 
-.wechat-preview::-webkit-scrollbar-thumb:hover,
+.preview-body::-webkit-scrollbar-thumb:hover,
 .article-content::-webkit-scrollbar-thumb:hover {
   background: #a8a8a8;
 }
 
 /* 响应式设计 */
 @media (max-width: 1200px) {
-  .app-container {
+  .app-main {
     flex-direction: column;
     padding-right: 20px;
   }
   
-  .preview-container {
+  .preview-section {
     width: 100%;
-    height: 100vh;
-    max-height: 100vh;
-    position: fixed;
-    right: 0;
-    top: 0;
+  }
+  
+  .preview-panel {
+    position: relative;
+    right: auto;
+    top: auto;
+    bottom: auto;
+    width: 100%;
+    height: 600px;
   }
   
   .wechat-article {
