@@ -143,6 +143,26 @@ const readCount = ref(Math.floor(Math.random() * 10000) + 100)
 const likeCount = ref(Math.floor(Math.random() * 500) + 10)
 const copySuccess = ref(false)
 
+// 违禁词列表（示例，可根据实际需求扩展）
+const forbiddenWords = [
+  '政治敏感词1', '政治敏感词2', // 示例，请替换为实际违禁词
+  '色情', '暴力', '赌博', '毒品',
+  '诈骗', '传销', '非法', '违法'
+]
+
+// 检测文本中是否包含违禁词
+const containsForbiddenWord = (text) => {
+  if (!text) return false
+  const lowerText = text.toLowerCase()
+  return forbiddenWords.some(word => {
+    // 检测中文违禁词
+    if (text.includes(word)) return true
+    // 检测英文违禁词（不区分大小写）
+    if (lowerText.includes(word.toLowerCase())) return true
+    return false
+  })
+}
+
 // 当前时间
 const currentTime = computed(() => {
   const now = new Date()
@@ -163,7 +183,7 @@ const formattedContent = computed(() => {
   return content.value
     .split('\n')
     .filter(line => line.trim())
-    .map(line => `<p>${line}</p>`)
+    .map(line => `<span textstyle style="font-size: 0px">${line}</span>`)
     .join('')
 })
 
@@ -191,35 +211,91 @@ const clearContent = () => {
   }
 }
 
-// 生成随机字符串
+// 生成随机字符串（确保不包含违禁词）
 const generateRandomText = (length) => {
   const chars = `abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789，。！？；：、""''（）【】《》`
-  const chineseChars = `的一是在不了有和人这中大为上个国我以要他时来用们生到作地于出就分对成会可主发年动同工也能下过子说产种面而方后多定行学法所民得经十三之进着等部度家电力里如水化高自二理起小物现实加量都两体制机当使点从业本去把性好应开它合还因由其些然前外天政四日那社义事平形相全表间样与关各重新线内数正心反你明看原又么利比或但质气第向道命此变条只没结解问意建月公无系军很情者最立代想已通并提直题党程展五果料象员革位入常文总次品式活设及管特件长求老头基资边流路级少图山统接知较将组见计别她手角期根论运农指几九区强放决西被干做必战先回则任取据处队南给色光门即保治北造百规热领七海口东导器压志世金增争济阶油思术极交受联什认六共权收证改清己美再采转更单风切打白教速花带安场身车例真务具万每目至达走积示议声报斗完类八离华名确才科张信马节话米整空元况今集温传土许步群广石记需段研界拉林律叫且究观越织装影算低持音众书布复容儿须际商非验连断深难近矿千周委素技备半办青省列习响约支般史感劳便团往酸历市克何除消构府称太准精值号率族维划选标写存候毛亲快效斯院查江型眼王按格养易置派层片始却专状育厂京识适属圆包火住调满县局照参红细引听该铁价严龙飞`
+  // 使用安全的常用汉字，避免包含违禁词
+  const chineseChars = `美女颜值好看二次元女神新人摄影展览`
   
   let result = ''
-  for (let i = 0; i < length; i++) {
+  let attempts = 0
+  const maxAttempts = length * 10 // 最大尝试次数，避免无限循环
+  
+  while (result.length < length && attempts < maxAttempts) {
+    let char = ''
+    
     // 随机选择使用中文或英文
     if (Math.random() > 0.3) {
       // 70%概率使用中文
-      result += chineseChars[Math.floor(Math.random() * chineseChars.length)]
+      char = chineseChars[Math.floor(Math.random() * chineseChars.length)]
     } else {
       // 30%概率使用英文和标点
-      result += chars[Math.floor(Math.random() * chars.length)]
+      char = chars[Math.floor(Math.random() * chars.length)]
     }
-    // 每10个字符添加一个空格或标点
-    if (i > 0 && i % 10 === 0 && Math.random() > 0.5) {
-      result += '，'
+    
+    // 检查添加这个字符后是否会形成违禁词
+    const testText = result + char
+    
+    // 检查当前字符和最近几个字符的组合是否包含违禁词
+    // 检查最近20个字符的组合（覆盖更长的违禁词）
+    const checkLength = Math.min(20, testText.length)
+    const recentText = testText.slice(-checkLength)
+    
+    if (!containsForbiddenWord(recentText)) {
+      result += char
+      
+      // 每10个字符添加一个空格或标点
+      if (result.length > 0 && result.length % 10 === 0 && Math.random() > 0.5) {
+        const punctuation = '，'
+        const testWithPunc = result + punctuation
+        const checkPuncLength = Math.min(20, testWithPunc.length)
+        const recentWithPunc = testWithPunc.slice(-checkPuncLength)
+        if (!containsForbiddenWord(recentWithPunc)) {
+          result += punctuation
+        }
+      }
     }
+    
+    attempts++
   }
+  
+  // 最终检查整个结果是否包含违禁词
+  // 如果包含违禁词，返回空字符串，由调用者处理
+  if (containsForbiddenWord(result)) {
+    return ''
+  }
+  
   return result
 }
 
-// 自动填充随机文字
+// 安全生成随机文字（确保不包含违禁词，带重试机制）
+const generateRandomTextSafe = (length, maxRetries = 10) => {
+  for (let i = 0; i < maxRetries; i++) {
+    const text = generateRandomText(length)
+    if (text && !containsForbiddenWord(text)) {
+      return text
+    }
+  }
+  // 如果多次尝试都失败，返回一个安全的默认文本
+  const safeText = '这是一段安全的示例文字。'
+  const remainingLength = Math.max(0, length - safeText.length)
+  return safeText + '的'.repeat(remainingLength)
+}
+
+// 自动填充随机文字（确保不包含违禁词）
 const fillRandomText = () => {
   const currentLength = content.value.length
   if (currentLength < 500) {
     const needFill = 500 - currentLength
-    const randomText = generateRandomText(needFill)
+    const randomText = generateRandomTextSafe(needFill)
+    
+    // 再次检查最终内容是否包含违禁词
+    const finalContent = content.value + randomText
+    if (containsForbiddenWord(finalContent)) {
+      alert('生成的内容包含违禁词，请手动编辑内容')
+      return
+    }
+    
     content.value += randomText
   }
 }
@@ -230,43 +306,113 @@ watch(wordCount, (newCount) => {
   // 只在字数不足时提示
 })
 
-// 获取正文内容（纯文本）
+// 获取格式化后的 HTML 内容（用于复制）
+const getFormattedHTML = () => {
+  if (!content.value) return ''
+  // 返回格式化的 HTML，确保段落之间有正确的间距
+  return formattedContent.value
+}
+
+// 获取正文内容（纯文本，用于降级方案）
 const getFullArticleText = () => {
-  // 只返回正文内容
   return content.value || ''
 }
 
-// 复制到剪贴板
+// 复制到剪贴板（带 HTML 格式）
 const copyToClipboard = async () => {
   try {
-    const text = getFullArticleText()
+    const htmlContent = getFormattedHTML()
+    const textContent = getFullArticleText()
     
-    if (!text.trim()) {
+    if (!textContent.trim()) {
       alert('没有内容可复制')
       return
     }
     
-    // 使用 Clipboard API
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      await navigator.clipboard.writeText(text)
-      copySuccess.value = true
-      setTimeout(() => {
-        copySuccess.value = false
-      }, 2000)
-    } else {
-      // 降级方案：使用传统的复制方法
-      const textArea = document.createElement('textarea')
-      textArea.value = text
-      textArea.style.position = 'fixed'
-      textArea.style.opacity = '0'
-      document.body.appendChild(textArea)
-      textArea.select()
-      document.execCommand('copy')
-      document.body.removeChild(textArea)
-      copySuccess.value = true
-      setTimeout(() => {
-        copySuccess.value = false
-      }, 2000)
+    // 使用 Clipboard API 写入 HTML 格式
+    if (navigator.clipboard && navigator.clipboard.write) {
+      try {
+        // 创建 ClipboardItem，同时包含 HTML 和纯文本格式
+        const htmlBlob = new Blob([htmlContent], { type: 'text/html' })
+        const textBlob = new Blob([textContent], { type: 'text/plain' })
+        
+        const clipboardItem = new ClipboardItem({
+          'text/html': htmlBlob,
+          'text/plain': textBlob
+        })
+        
+        await navigator.clipboard.write([clipboardItem])
+        copySuccess.value = true
+        setTimeout(() => {
+          copySuccess.value = false
+        }, 2000)
+        return
+      } catch (clipboardError) {
+        // 如果 ClipboardItem 不支持，降级到传统方法
+        console.warn('ClipboardItem 不支持，使用降级方案:', clipboardError)
+      }
+    }
+    
+    // 降级方案：创建一个隐藏的 div，包含格式化后的 HTML，然后复制
+    const tempDiv = document.createElement('div')
+    tempDiv.style.position = 'fixed'
+    tempDiv.style.left = '-9999px'
+    tempDiv.style.top = '-9999px'
+    tempDiv.style.width = '1px'
+    tempDiv.style.height = '1px'
+    tempDiv.style.overflow = 'hidden'
+    // 设置 contenteditable 以便复制 HTML 格式
+    tempDiv.setAttribute('contenteditable', 'true')
+    tempDiv.innerHTML = htmlContent
+    document.body.appendChild(tempDiv)
+    
+    // 选中内容
+    const range = document.createRange()
+    range.selectNodeContents(tempDiv)
+    const selection = window.getSelection()
+    selection.removeAllRanges()
+    selection.addRange(range)
+    
+    // 复制
+    try {
+      const successful = document.execCommand('copy')
+      if (successful) {
+        copySuccess.value = true
+        setTimeout(() => {
+          copySuccess.value = false
+        }, 2000)
+      } else {
+        throw new Error('execCommand 复制失败')
+      }
+    } catch (execError) {
+      // 最后的降级方案：复制纯文本
+      console.warn('execCommand 失败，使用纯文本复制:', execError)
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(textContent)
+        copySuccess.value = true
+        setTimeout(() => {
+          copySuccess.value = false
+        }, 2000)
+      } else {
+        const textArea = document.createElement('textarea')
+        textArea.value = textContent
+        textArea.style.position = 'fixed'
+        textArea.style.opacity = '0'
+        document.body.appendChild(textArea)
+        textArea.select()
+        document.execCommand('copy')
+        document.body.removeChild(textArea)
+        copySuccess.value = true
+        setTimeout(() => {
+          copySuccess.value = false
+        }, 2000)
+      }
+    } finally {
+      // 清理
+      selection.removeAllRanges()
+      if (document.body.contains(tempDiv)) {
+        document.body.removeChild(tempDiv)
+      }
     }
   } catch (err) {
     console.error('复制失败:', err)
@@ -647,12 +793,13 @@ const copyToClipboard = async () => {
   letter-spacing: 0.5px;
 }
 
-.content-text p {
+.content-text span {
+  display: block;
   margin: 0 0 1.2em 0;
   text-indent: 0;
 }
 
-.content-text p:last-child {
+.content-text span:last-child {
   margin-bottom: 0;
 }
 
