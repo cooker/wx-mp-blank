@@ -44,6 +44,21 @@
                 {{ isCollapsed ? '展开' : '隐藏到最小' }}
               </button>
               <button @click="clearContent" class="toolbar-btn">清空</button>
+              <div class="nonsense-generator">
+                <input 
+                  v-model="customTags" 
+                  type="text" 
+                  class="tags-input"
+                  placeholder="输入标签（用逗号分隔，如：科技,创新,未来）"
+                  @keyup.enter="generateNonsenseText"
+                />
+                <button 
+                  @click="generateNonsenseText" 
+                  class="toolbar-btn nonsense-btn"
+                >
+                  生成狗屁不通
+                </button>
+              </div>
             </div>
           </div>
 
@@ -67,6 +82,7 @@
           <div class="editor-footer">
             <div class="tips">
               <p>💡 提示：当字数不足目标字数时，点击"自动填充"按钮会自动填充随机文字</p>
+              <p>💡 输入自定义标签（用逗号分隔），点击"生成狗屁不通"可以生成基于标签的无意义内容</p>
               <p>💡 点击"隐藏到最小"可以将编辑器折叠到最小显示</p>
             </div>
           </div>
@@ -153,7 +169,8 @@ const authorName = ref('作者名称')
 const readCount = ref(Math.floor(Math.random() * 10000) + 100)
 const likeCount = ref(Math.floor(Math.random() * 500) + 10)
 const copySuccess = ref(false)
-const targetWordCount = ref(500) // 目标字数，默认500字
+const targetWordCount = ref(600) // 目标字数，默认600字
+const customTags = ref('') // 自定义标签
 
 // 监听目标字数变化，确保在合理范围内
 watch(targetWordCount, (newValue) => {
@@ -314,40 +331,201 @@ const generateRandomTextSafe = (length, maxRetries = 10) => {
   return safeText + '的'.repeat(remainingLength)
 }
 
-// 自动填充随机文字（确保不包含违禁词）
+// 自动填充随机文字（确保不包含违禁词，必须填充到目标字数）
 const fillRandomText = () => {
   const currentLength = content.value.length
-  const target = targetWordCount.value || 500 // 确保目标字数有效，默认500
+  const target = targetWordCount.value || 600 // 确保目标字数有效，默认600
   
   if (currentLength < target) {
     const needFill = target - currentLength
-    const randomText = generateRandomTextSafe(needFill)
     
-    // 再次检查最终内容是否包含违禁词
-    const finalContent = content.value + randomText
-    if (containsForbiddenWord(finalContent)) {
-      alert('生成的内容包含违禁词，请手动编辑内容')
-      return
+    // 尝试生成随机文字
+    let filledText = generateRandomTextSafe(needFill)
+    
+    // 如果生成失败或字数不足，使用安全字符补充
+    if (!filledText) {
+      filledText = ''
     }
     
-    content.value += randomText
+    // 计算实际生成的字数（不包括换行符）
+    const actualLength = filledText.replace(/\n/g, '').length
+    
+    // 如果字数不足，用安全字符补充到目标字数
+    if (actualLength < needFill) {
+      const remaining = needFill - actualLength
+      filledText += '的'.repeat(remaining)
+    }
+    
+    // 检查最终内容是否包含违禁词
+    const finalContent = content.value + filledText
+    if (containsForbiddenWord(finalContent)) {
+      // 如果包含违禁词，使用完全安全的字符填充
+      filledText = '的'.repeat(needFill)
+    }
+    
+    // 添加填充的文字
+    content.value += filledText
+    
+    // 最终验证：确保字数达到目标（不包括换行符）
+    const finalLength = content.value.replace(/\n/g, '').length
+    if (finalLength < target) {
+      const additional = target - finalLength
+      content.value += '的'.repeat(additional)
+    }
   }
+}
+
+// 生成狗屁不通的内容（支持多个自定义标签）
+const generateNonsenseText = () => {
+  // 解析自定义标签
+  const tags = customTags.value
+    .split(/[,，、]/)
+    .map(tag => tag.trim())
+    .filter(tag => tag.length > 0)
+  
+  // 如果没有标签，使用默认标签
+  const defaultTags = ['发展', '创新', '未来', '科技', '进步', '变革', '机遇', '挑战']
+  const finalTags = tags.length > 0 ? tags : defaultTags
+  
+  // 狗屁不通的常用词汇和句式
+  const nonsenseWords = [
+    '众所周知', '毋庸置疑', '显而易见', '不言而喻', '显而易见',
+    '从某种意义上说', '在某种程度上', '从另一个角度来看',
+    '值得我们深思的是', '需要指出的是', '必须承认',
+    '毫无疑问', '可以预见', '不难发现', '显而易见',
+    '从长远来看', '从短期来看', '从宏观角度', '从微观角度',
+    '在新时代背景下', '在当前形势下', '在全球化进程中',
+    '随着时代的发展', '随着科技的进步', '随着社会的变迁',
+    '这是一个值得探讨的问题', '这是一个复杂的问题',
+    '我们需要深入思考', '我们需要全面分析', '我们需要客观看待'
+  ]
+  
+  const connectors = [
+    '然而', '但是', '不过', '可是', '虽然', '尽管',
+    '因此', '所以', '于是', '从而', '进而', '从而',
+    '同时', '另外', '此外', '而且', '并且', '以及',
+    '首先', '其次', '再次', '最后', '总之', '综上所述'
+  ]
+  
+  const verbs = [
+    '推动', '促进', '提升', '增强', '改善', '优化',
+    '实现', '达成', '完成', '取得', '获得', '拥有',
+    '影响', '改变', '转变', '发展', '进步', '提升',
+    '探索', '研究', '分析', '思考', '探讨', '讨论'
+  ]
+  
+  const adjectives = [
+    '重要的', '关键的', '核心的', '主要的', '基本的',
+    '深远的', '广泛的', '全面的', '深入的', '系统的',
+    '积极的', '正面的', '有效的', '显著的', '明显的',
+    '复杂的', '多元的', '丰富的', '多样的', '全面的'
+  ]
+  
+  // 生成句子模板
+  const generateSentence = (tag) => {
+    const templates = [
+      `${tag}是${getRandom(adjectives)}${getRandom(verbs)}的重要途径。`,
+      `在${tag}领域，我们需要${getRandom(verbs)}${getRandom(adjectives)}的发展。`,
+      `${getRandom(nonsenseWords)}，${tag}${getRandom(verbs)}了${getRandom(adjectives)}变化。`,
+      `从${tag}的角度来看，${getRandom(nonsenseWords)}，这${getRandom(verbs)}了新的${getRandom(adjectives)}机遇。`,
+      `${tag}不仅${getRandom(verbs)}了${getRandom(adjectives)}影响，还${getRandom(verbs)}了${getRandom(adjectives)}变革。`,
+      `${getRandom(connectors)}，${tag}在${getRandom(adjectives)}方面${getRandom(verbs)}了${getRandom(adjectives)}作用。`,
+      `关于${tag}，${getRandom(nonsenseWords)}，我们需要${getRandom(verbs)}${getRandom(adjectives)}的思考。`,
+      `${tag}${getRandom(verbs)}了${getRandom(adjectives)}趋势，${getRandom(connectors)}也${getRandom(verbs)}了${getRandom(adjectives)}挑战。`
+    ]
+    return getRandom(templates)
+  }
+  
+  // 生成段落
+  const generateParagraph = () => {
+    const sentences = []
+    const tagCount = Math.min(finalTags.length, 3) // 每个段落使用最多3个标签
+    const selectedTags = shuffleArray([...finalTags]).slice(0, tagCount)
+    
+    // 生成3-5个句子
+    const sentenceCount = Math.floor(Math.random() * 3) + 3
+    for (let i = 0; i < sentenceCount; i++) {
+      const tag = selectedTags[i % selectedTags.length]
+      sentences.push(generateSentence(tag))
+    }
+    
+    return sentences.join('')
+  }
+  
+  // 生成指定字数的内容
+  const targetLength = targetWordCount.value || 600
+  let result = ''
+  let currentLength = 0
+  
+  while (currentLength < targetLength) {
+    const paragraph = generateParagraph()
+    const paragraphLength = paragraph.length
+    
+    if (currentLength + paragraphLength <= targetLength) {
+      result += paragraph
+      currentLength += paragraphLength
+      
+      // 每300字换行
+      if (currentLength > 0 && currentLength % 300 === 0 && currentLength < targetLength) {
+        result += '\n'
+      }
+    } else {
+      // 如果段落太长，截取需要的部分
+      const remaining = targetLength - currentLength
+      result += paragraph.substring(0, remaining)
+      currentLength = targetLength
+    }
+  }
+  
+  // 确保达到目标字数
+  if (currentLength < targetLength) {
+    const remaining = targetLength - currentLength
+    result += '的'.repeat(remaining)
+  }
+  
+  // 替换内容
+  content.value = result
+}
+
+// 辅助函数：随机获取数组元素
+const getRandom = (array) => {
+  return array[Math.floor(Math.random() * array.length)]
+}
+
+// 辅助函数：打乱数组
+const shuffleArray = (array) => {
+  const shuffled = [...array]
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]
+  }
+  return shuffled
 }
 
 // 监听字数变化，自动填充
 watch(wordCount, (newCount) => {
-  // 如果用户手动输入导致字数超过500，不做处理
+  // 如果用户手动输入导致字数超过目标字数，不做处理
   // 只在字数不足时提示
 })
 
 // 获取格式化后的 HTML 内容（用于复制，使用 section 标签）
 const getFormattedHTML = () => {
   if (!content.value) return ''
+  
   // 将换行转换为 <section> 标签包裹的内容
   return content.value
     .split('\n')
     .filter(line => line.trim())
-    .map(line => `<section textstyle style="font-size: 0px">${line}</section>`)
+    .map(line => {
+      const lineLength = line.length
+      // 如果内容没有超过300字，使用 <section><span> 标签包裹
+      if (lineLength <= 300) {
+        return `<section><span textstyle style="font-size: 0px">${line}</span></section>`
+      } else {
+        // 如果超过300字，直接使用 <section> 标签
+        return `<section textstyle style="font-size: 0px">${line}</section>`
+      }
+    })
     .join('')
 }
 
@@ -614,6 +792,45 @@ const copyToClipboard = async () => {
 .toolbar-left {
   display: flex;
   gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.nonsense-generator {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-left: 12px;
+}
+
+.tags-input {
+  padding: 6px 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background: white;
+  color: #333;
+  font-size: 13px;
+  min-width: 200px;
+  outline: none;
+  transition: all 0.3s;
+}
+
+.tags-input:focus {
+  border-color: #667eea;
+  box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.1);
+}
+
+.nonsense-btn {
+  background: #9c27b0;
+  color: white;
+  border-color: #9c27b0;
+}
+
+.nonsense-btn:hover {
+  background: #7b1fa2;
+  border-color: #7b1fa2;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(156, 39, 176, 0.3);
 }
 
 .toolbar-btn {
@@ -887,6 +1104,13 @@ const copyToClipboard = async () => {
 
 .content-text section:last-child {
   margin-bottom: 0;
+}
+
+/* section 内部有 span 时的样式 */
+.content-text section span {
+  display: block;
+  margin: 0;
+  text-indent: 0;
 }
 
 .empty-content {
