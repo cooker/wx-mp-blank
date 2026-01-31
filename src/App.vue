@@ -4,14 +4,25 @@
     <header class="app-header">
       <h1 class="app-title">微信公众号文章编辑器</h1>
       <div class="header-actions">
-        <div class="word-count-info" :class="{ 'warning': wordCount < 500 }">
-          <span class="count-text">字数：{{ wordCount }} / 500</span>
+        <div class="word-count-info" :class="{ 'warning': wordCount < targetWordCount }">
+          <span class="count-text">字数：{{ wordCount }} / {{ targetWordCount }}</span>
+          <div class="target-word-input-wrapper">
+            <label class="target-label">目标：</label>
+            <input 
+              v-model.number="targetWordCount" 
+              type="number" 
+              min="1" 
+              max="10000"
+              class="target-word-input"
+            />
+            <span class="target-unit">字</span>
+          </div>
           <button 
-            v-if="wordCount < 500" 
+            v-if="wordCount < targetWordCount" 
             @click="fillRandomText" 
             class="action-btn fill-btn"
           >
-            自动填充至500字
+            自动填充至{{ targetWordCount }}字
           </button>
         </div>
       </div>
@@ -55,7 +66,7 @@
           <!-- 底部提示 -->
           <div class="editor-footer">
             <div class="tips">
-              <p>💡 提示：当字数不足500字时，点击"自动填充至500字"按钮会自动填充随机文字</p>
+              <p>💡 提示：当字数不足目标字数时，点击"自动填充"按钮会自动填充随机文字</p>
               <p>💡 点击"隐藏到最小"可以将编辑器折叠到最小显示</p>
             </div>
           </div>
@@ -142,6 +153,16 @@ const authorName = ref('作者名称')
 const readCount = ref(Math.floor(Math.random() * 10000) + 100)
 const likeCount = ref(Math.floor(Math.random() * 500) + 10)
 const copySuccess = ref(false)
+const targetWordCount = ref(500) // 目标字数，默认500字
+
+// 监听目标字数变化，确保在合理范围内
+watch(targetWordCount, (newValue) => {
+  if (newValue < 1) {
+    targetWordCount.value = 1
+  } else if (newValue > 10000) {
+    targetWordCount.value = 10000
+  }
+})
 
 // 违禁词列表（示例，可根据实际需求扩展）
 const forbiddenWords = [
@@ -177,13 +198,13 @@ const wordCount = computed(() => {
   return content.value.length
 })
 
-// 格式化内容，将换行转换为段落
+// 格式化内容，将换行转换为 section
 const formattedContent = computed(() => {
   if (!content.value) return ''
   return content.value
     .split('\n')
     .filter(line => line.trim())
-    .map(line => `<span textstyle style="font-size: 0px">${line}</span>`)
+    .map(line => `<section textstyle style="font-size: 0px">${line}</section>`)
     .join('')
 })
 
@@ -211,7 +232,7 @@ const clearContent = () => {
   }
 }
 
-// 生成随机字符串（确保不包含违禁词）
+// 生成随机字符串（确保不包含违禁词，每300字自动换行）
 const generateRandomText = (length) => {
   const chars = `abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789，。！？；：、""''（）【】《》`
   // 使用安全的常用汉字，避免包含违禁词
@@ -220,8 +241,10 @@ const generateRandomText = (length) => {
   let result = ''
   let attempts = 0
   const maxAttempts = length * 10 // 最大尝试次数，避免无限循环
+  const lineBreakInterval = 300 // 每300字换行
+  let contentCharCount = 0 // 实际内容字符数（不包括换行符）
   
-  while (result.length < length && attempts < maxAttempts) {
+  while (contentCharCount < length && attempts < maxAttempts) {
     let char = ''
     
     // 随机选择使用中文或英文
@@ -234,7 +257,9 @@ const generateRandomText = (length) => {
     }
     
     // 检查添加这个字符后是否会形成违禁词
-    const testText = result + char
+    // 只检查当前行的内容（不包括换行符）
+    const currentLine = result.split('\n').pop() || ''
+    const testText = currentLine + char
     
     // 检查当前字符和最近几个字符的组合是否包含违禁词
     // 检查最近20个字符的组合（覆盖更长的违禁词）
@@ -243,16 +268,23 @@ const generateRandomText = (length) => {
     
     if (!containsForbiddenWord(recentText)) {
       result += char
+      contentCharCount++
       
       // 每10个字符添加一个空格或标点
-      if (result.length > 0 && result.length % 10 === 0 && Math.random() > 0.5) {
+      if (contentCharCount > 0 && contentCharCount % 10 === 0 && Math.random() > 0.5) {
         const punctuation = '，'
-        const testWithPunc = result + punctuation
+        const testWithPunc = currentLine + char + punctuation
         const checkPuncLength = Math.min(20, testWithPunc.length)
         const recentWithPunc = testWithPunc.slice(-checkPuncLength)
         if (!containsForbiddenWord(recentWithPunc)) {
           result += punctuation
+          contentCharCount++
         }
+      }
+      
+      // 检查是否需要换行（每300字换行一次）
+      if (contentCharCount > 0 && contentCharCount % lineBreakInterval === 0 && contentCharCount < length) {
+        result += '\n'
       }
     }
     
@@ -285,8 +317,10 @@ const generateRandomTextSafe = (length, maxRetries = 10) => {
 // 自动填充随机文字（确保不包含违禁词）
 const fillRandomText = () => {
   const currentLength = content.value.length
-  if (currentLength < 500) {
-    const needFill = 500 - currentLength
+  const target = targetWordCount.value || 500 // 确保目标字数有效，默认500
+  
+  if (currentLength < target) {
+    const needFill = target - currentLength
     const randomText = generateRandomTextSafe(needFill)
     
     // 再次检查最终内容是否包含违禁词
@@ -306,11 +340,15 @@ watch(wordCount, (newCount) => {
   // 只在字数不足时提示
 })
 
-// 获取格式化后的 HTML 内容（用于复制）
+// 获取格式化后的 HTML 内容（用于复制，使用 section 标签）
 const getFormattedHTML = () => {
   if (!content.value) return ''
-  // 返回格式化的 HTML，确保段落之间有正确的间距
-  return formattedContent.value
+  // 将换行转换为 <section> 标签包裹的内容
+  return content.value
+    .split('\n')
+    .filter(line => line.trim())
+    .map(line => `<section textstyle style="font-size: 0px">${line}</section>`)
+    .join('')
 }
 
 // 获取正文内容（纯文本，用于降级方案）
@@ -472,6 +510,44 @@ const copyToClipboard = async () => {
 .word-count-info.warning .count-text {
   background: rgba(255, 193, 7, 0.3);
   color: #ffc107;
+}
+
+.target-word-input-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(255, 255, 255, 0.15);
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+
+.target-label {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.9);
+  white-space: nowrap;
+}
+
+.target-word-input {
+  width: 60px;
+  padding: 2px 6px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.9);
+  color: #333;
+  font-size: 13px;
+  text-align: center;
+  outline: none;
+}
+
+.target-word-input:focus {
+  border-color: rgba(255, 255, 255, 0.6);
+  background: white;
+}
+
+.target-unit {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.9);
+  white-space: nowrap;
 }
 
 .action-btn {
@@ -800,6 +876,16 @@ const copyToClipboard = async () => {
 }
 
 .content-text span:last-child {
+  margin-bottom: 0;
+}
+
+.content-text section {
+  display: block;
+  margin: 0 0 1.2em 0;
+  text-indent: 0;
+}
+
+.content-text section:last-child {
   margin-bottom: 0;
 }
 
